@@ -5,15 +5,6 @@ import (
 	"reflect"
 )
 
-// func TestRegex(t *testing.T) {
-// 	const countRegex = "(?s)^.*\\((\\S+)\\)[\\n\\r\\s]*$"
-// 	countMatcher := regexp.MustCompile(countRegex)
-// 	text := "\n              07-Ghost\n                (202)\n            "
-// 	result := countMatcher.FindStringSubmatch(text)
-// 	fmt.Println(result)
-//
-// }
-
 func TestGetFandomCategories(t *testing.T) {
 	exampleExpectedCategory := FandomCategory{
 		name: "Anime & Manga",
@@ -22,7 +13,7 @@ func TestGetFandomCategories(t *testing.T) {
 
 	categories, err := getFandomCategories()
 	if err != nil {
-		t.Fatal("Error while fetching fandom categories")
+		t.Fatal("Error while fetching fandom categories:" + err.Error())
 	}
 
 	if len(categories) == 0 {
@@ -47,7 +38,7 @@ func TestGetFandomCategory(t *testing.T) {
 	const expectedNumExampleFandoms = 1000
 	category, err := getFandomCategory(exampleCategory)
 	if err != nil {
-		t.Fatal("Error while fetching fandom category")
+		t.Fatal("Error while fetching fandom category:" + err.Error())
 	}
 
 	if len(category) < expectedNumExampleFandoms {
