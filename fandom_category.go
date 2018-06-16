@@ -64,7 +64,7 @@ func GetFandomCategory(category string) ([]Fandom, *AO3Error) {
 		letter := matchedLetter[1]
 
 		// Extract each fandom under the letter, where each the node contains
-		// the name, count and slug of the afndom
+		// the name, count and slug of the fandom
 		fandomsMatch := categorySectionNode.Find("ul > li")
 		for i := range fandomsMatch.Nodes {
 			fandomNode := fandomsMatch.Eq(i)
