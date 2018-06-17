@@ -59,7 +59,6 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 	userSlugRegex := regexp.MustCompile("^/users/(.+)/(?:pseuds|gifts).*$")
 	fandomSlugRegex := regexp.MustCompile("^/tags/(.+)/works$")
 
-
 	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
 		return nil, WrapError(http.StatusServiceUnavailable, err, "fetching tagged works returned an err")
@@ -94,6 +93,26 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 			return nil, NewError(http.StatusUnprocessableEntity, "regexing work slug failed: "+workLink)
 		}
 		work.slug = workSlugMatches[1]
+
+		// Extract the fandoms
+		work.tags.fandoms = []Link{}
+		fandomMatches := workNode.Find(".fandoms.heading > a")
+		if len(fandomMatches.Nodes) < 1 {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing work fandoms with goquery failed")
+		}
+
+		for i := 0; i < len(fandomMatches.Nodes); i++ {
+			fandomNode := fandomMatches.Eq(1)
+			fandomLink, ok := fandomNode.Attr("href")
+			if !ok {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work fandom link failed")
+			}
+
+			work.tags.fandoms = append(work.tags.fandoms, Link{
+				text: fandomNode.Text(),
+				slug: fandomSlugRegex.FindStringSubmatch(fandomLink)[1],
+			})
+		}
 
 		// Retrieve the the header which contains the title, authors and recipients.
 		// There is always one author. However, there can optionally be multiple
@@ -133,16 +152,12 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 			if !ok {
 				return nil, NewError(http.StatusUnprocessableEntity, "parsing work archivist link failed")
 			}
-
-			author := Link{
+			work.authors = []Link{{
 				text: archivistRegex.FindStringSubmatch(headingNode.Text())[1],
 				slug: userSlugRegex.FindStringSubmatch(archivistLink)[1],
-			}
-			work.authors = []Link{author}
+			}}
 		} else {
 			// Extract authors and recipients
-			var authors []Link
-			var recipients []Link
 
 			// There can be multiple authors and recipients, hence we need to
 			// loop through all nodes. Authors will have a "rel" attr with value
@@ -171,9 +186,9 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 				// Append to the correct type of user
 				userRel, ok := userNode.Attr("rel")
 				if ok && userRel == "author" {
-					authors = append(authors, user)
+					work.authors = append(work.authors, user)
 				} else {
-					recipients = append(recipients, user)
+					work.recipients = append(work.recipients, user)
 				}
 			}
 		}
