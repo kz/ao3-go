@@ -1,4 +1,4 @@
-package ao3_go
+package ao3
 
 import (
 	"regexp"
