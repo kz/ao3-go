@@ -11,7 +11,8 @@ func TestGetFandomCategories(t *testing.T) {
 		slug: "Anime%20*a*%20Manga",
 	}
 
-	categories, err := GetFandomCategories()
+	client := InitAO3Client(nil)
+	categories, err := client.GetFandomCategories()
 	if err != nil {
 		t.Fatal("Error while fetching fandom categories:" + err.Error())
 	}

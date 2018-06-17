@@ -18,7 +18,7 @@ type Fandom struct {
 //
 // Endpoint: https://archiveofourown.org/media/[category]/fandoms
 // Example: https://archiveofourown.org/media/Anime%20*a*%20Manga/fandoms
-func GetFandomCategory(category string) ([]Fandom, *AO3Error) {
+func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error) {
 	endpoint := "media/" + category + "/fandoms"
 
 	slugRegex := regexp.MustCompile("^/tags/(.+)/works$")
@@ -26,7 +26,7 @@ func GetFandomCategory(category string) ([]Fandom, *AO3Error) {
 	countRegex := regexp.MustCompile("(?s)^.*\\((\\S+)\\)[\\n\\r\\s]*$")
 
 	// Fetch the HTML page and load the document
-	res, err := http.Get(baseURL + endpoint)
+	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
 		return nil, WrapError(http.StatusServiceUnavailable, err, "fetching fandom category returned an err")
 	}

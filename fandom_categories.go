@@ -14,13 +14,13 @@ type FandomCategory struct {
 // GetFandomCategories scrapes the fandoms list.
 //
 // Endpoint: https://archiveofourown.org/media
-func GetFandomCategories() ([]FandomCategory, *AO3Error) {
+func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 	const endpoint = "media"
 
 	slugRegex := regexp.MustCompile("^/media/(.+)/fandoms$")
 
 	// Fetch the HTML page and load the document
-	res, err := http.Get(baseURL + endpoint)
+	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
 		return nil, WrapError(http.StatusServiceUnavailable, err, "fetching fandom categories returned an err")
 	}

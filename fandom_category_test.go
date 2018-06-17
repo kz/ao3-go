@@ -14,7 +14,8 @@ func TestGetFandomCategory(t *testing.T) {
 	}
 	const expectedMinFandomCount = 300
 
-	category, err := GetFandomCategory(exampleCategory)
+	client := InitAO3Client(nil)
+	category, err := client.GetFandomCategory(exampleCategory)
 	if err != nil {
 		t.Fatal("Error while fetching fandom category:" + err.Error())
 	}
