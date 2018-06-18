@@ -59,6 +59,7 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 	archivistRegex := regexp.MustCompile("(?m).*by\\s*(.+ \\[archived by .+])")
 	userSlugRegex := regexp.MustCompile("^/users/(.+)/(?:pseuds|gifts).*$")
 	fandomSlugRegex := regexp.MustCompile("^/tags/(.+)/works$")
+	seriesRegex := regexp.MustCompile("(?m)Part <strong>(.+)</strong> of <a href=\"/series/(.+)\">(.+)</a>")
 
 	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
@@ -174,6 +175,29 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 			work.hits, err = strconv.Atoi(hitsMatches.First().Text())
 			if err != nil {
 				return nil, NewError(http.StatusUnprocessableEntity, "parsing work hits count failed")
+			}
+		}
+
+		// Extract the optional series
+		seriesMatches := workNode.Find(".series > li")
+		if len(seriesMatches.Nodes) == 1 {
+			// Extract the HTML with format "Part <strong>PART</strong> of <a href="/series/SLUG">TITLE</a>"
+			// and use a regex to extract the three relevant parts
+			seriesHTML, err := seriesMatches.Html()
+			if err != nil {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work series with goquery failed")
+			}
+
+			seriesValueMatches := seriesRegex.FindStringSubmatch(seriesHTML)
+			if len(seriesValueMatches) != 4 {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work series failed")
+			}
+
+			work.series.slug = seriesValueMatches[2]
+			work.series.name = seriesValueMatches[3]
+			work.series.part, err = strconv.Atoi(seriesValueMatches[1])
+			if err != nil {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work series part failed")
 			}
 		}
 
