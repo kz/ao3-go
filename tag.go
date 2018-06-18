@@ -5,6 +5,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"regexp"
 	"strings"
+	"strconv"
 )
 
 type Link struct {
@@ -73,7 +74,7 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 		return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing tagged works page with goquery failed")
 	}
 
-	works := []Work{}
+	var works []Work
 
 	// Matches against the box displaying a single work
 	workMatches := doc.Find(".work.blurb.group")
@@ -94,6 +95,13 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 		}
 		work.slug = workSlugMatches[1]
 
+		// Extract the last updated string by matching against the datetime class
+		lastUpdatedMatches := workNode.Find(".datetime")
+		if len(lastUpdatedMatches.Nodes) != 1 {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing last updated with goquery failed")
+		}
+		work.lastUpdated = lastUpdatedMatches.First().Text()
+
 		// Extract the fandoms
 		work.tags.fandoms = []Link{}
 		fandomMatches := workNode.Find(".fandoms.heading > a")
@@ -112,6 +120,61 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 				text: fandomNode.Text(),
 				slug: fandomSlugRegex.FindStringSubmatch(fandomLink)[1],
 			})
+		}
+
+		// Extract the language string by matching against <dd class="language">
+		languageMatches := workNode.Find("dd.language")
+		if len(languageMatches.Nodes) != 1 {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing work language with goquery failed")
+		}
+		work.language = languageMatches.First().Text()
+
+		// Extract the words string by matching against <dd class="words">
+		// Note that the word count may contain commas (e.g., 3,884)
+		wordsMatches := workNode.Find("dd.words")
+		if len(wordsMatches.Nodes) != 1 {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing work word count with goquery failed")
+		}
+
+		work.words, err = strconv.Atoi(wordsMatches.First().Text())
+		if err != nil {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing work word count failed")
+		}
+
+		// Extract the chapters string by matching against <dd class="chapters">
+		// Examples: "1/1", "3/?"
+		chaptersMatches := workNode.Find("dd.chapters")
+		if len(chaptersMatches.Nodes) != 1 {
+			return nil, NewError(http.StatusUnprocessableEntity, "parsing work chapters count failed")
+		}
+		work.chapters = chaptersMatches.First().Text()
+
+		// Extract the optional kudos count by matching against <dd class="kudos">
+		// It is assumed that the kudos count will not contain numbers
+		kudosMatches := workNode.Find("dd.kudos > a")
+		if len(kudosMatches.Nodes) == 1 {
+			work.kudos, err = strconv.Atoi(kudosMatches.First().Text())
+			if err != nil {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work kudos count failed")
+			}
+		}
+
+		// Extract the optional bookmarks count by matching against <dd class="bookmarks">
+		bookmarksMatches := workNode.Find("dd.bookmarks  > a")
+		if len(bookmarksMatches.Nodes) == 1 {
+			work.bookmarks, err = strconv.Atoi(bookmarksMatches.First().Text())
+			if err != nil {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work bookmarks count failed")
+			}
+		}
+
+		// Extract the optional hits count by matching against <dd class="hits">
+		hitsMatches := workNode.Find("dd.hits")
+		if len(hitsMatches.Nodes) == 1 {
+			work.hits, err = strconv.Atoi(hitsMatches.First().Text())
+			if err != nil {
+				return nil, NewError(http.StatusUnprocessableEntity, "parsing work hits count failed")
+			}
 		}
 
 		// Retrieve the the header which contains the title, authors and recipients.
@@ -192,8 +255,6 @@ func (client *AO3Client) GetTaggedWorks(tag string) ([]Work, *AO3Error) {
 				}
 			}
 		}
-
-		// Next retrieve the
 
 		works = append(works, work)
 	}
