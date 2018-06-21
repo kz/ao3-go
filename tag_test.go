@@ -12,9 +12,13 @@ func TestGetTaggedWorks(t *testing.T) {
 	const tag = "Action*s*Adventure"
 
 	client := InitAO3Client(nil)
-	_, err := client.GetTaggedWorks(tag)
+	works, err := client.GetTaggedWorks(tag)
 	if err != nil {
 		t.Error(err.Error())
+	}
+
+	for _, w := range works {
+		fmt.Printf("%+v\n\n\n", w)
 	}
 }
 
