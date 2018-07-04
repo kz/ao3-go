@@ -114,7 +114,8 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	work.Language = languageMatches.First().Text()
 
 	// Extract the words string by matching against <dd class="words">
-	// Note that the word count may contain commas (e.g., 3,884)
+	// Note that the word count may contain commas (e.g., 3,884) or may not
+	// contain any count at all.
 	wordsMatches := node.Find("dd.words")
 	if len(wordsMatches.Nodes) != 1 {
 		return nil, NewError(http.StatusUnprocessableEntity, "parsing work word count with goquery failed")
@@ -122,9 +123,9 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 
 	var err error
 	wordMatch := wordsMatches.First().Text()
-	work.Words, err = AtoiWithComma(wordMatch)
-	if err != nil {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work word count failed")
+	wordCount, err := AtoiWithComma(wordMatch)
+	if err == nil {
+		work.Words = wordCount
 	}
 
 	// Extract the chapters string by matching against <dd class="chapters">
