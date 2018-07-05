@@ -9,19 +9,21 @@ import (
 
 // TagWorks is a represented of a paginated /tags/.../works page
 type TagWorks struct {
+	Works []Work
 	Count       int
+
+	// Pagination-related values
 	IsPaginated bool
 	CurrentPage int
 	LastPage    int
-	Works       []Work
 }
 
-// GetTaggedWorks returns a paginated list of works from a tag. A tag can represent
+// GetTagWorks returns a paginated list of works from a tag. A tag can represent
 // fandoms, characters, etc.
 //
 // Endpoint: https://archiveofourown.org/tags/[tag]/works?page=[page]
 // Example: https://archiveofourown.org/tags/Action*s*Adventure/works
-func (client *AO3Client) GetTaggedWorks(tag string, page int) (*TagWorks, *AO3Error) {
+func (client *AO3Client) GetTagWorks(tag string, page int) (*TagWorks, *AO3Error) {
 	endpoint := "/tags/" + tag + "/works"
 	if page != 0 {
 		endpoint += "?page=" + strconv.Itoa(page)

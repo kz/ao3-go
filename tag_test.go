@@ -27,7 +27,7 @@ func TestGetTaggedWorks(t *testing.T) {
 		wg.Add(1)
 
 		go func(i int) {
-			_, err := client.GetTaggedWorks(tag, i)
+			_, err := client.GetTagWorks(tag, i)
 			if err != nil {
 				t.Errorf("error occurred on page %d - %v\n", i, err.Error())
 			}
