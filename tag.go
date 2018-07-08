@@ -9,8 +9,8 @@ import (
 
 // TagWorks is a represented of a paginated /tags/.../works page
 type TagWorks struct {
-	Works []Work
-	Count       int
+	Works []TagWork
+	Count int
 
 	// Pagination-related values
 	IsPaginated bool
@@ -53,6 +53,10 @@ func (client *AO3Client) GetTagWorks(tag string, page int) (*TagWorks, *AO3Error
 
 	countRegex := regexp.MustCompile("(?m)(?:.+of )?(\\d+) Work.+")
 	matchedCount := countRegex.FindStringSubmatch(countMatches.First().Text())
+	if len(matchedCount) != 2 {
+		return nil, NewError(http.StatusUnprocessableEntity, "unable to find works count in node")
+	}
+
 	tagWorks.Count, err = AtoiWithComma(matchedCount[1])
 	if err != nil {
 		return nil, NewError(http.StatusUnprocessableEntity, "unable to regex works count")
@@ -93,14 +97,14 @@ func (client *AO3Client) GetTagWorks(tag string, page int) (*TagWorks, *AO3Error
 	}
 
 	// Fetch the list of works for the page
-	tagWorks.Works = []Work{}
+	tagWorks.Works = []TagWork{}
 
 	// Matches against the box displaying a single work
 	workMatches := doc.Find(".work.blurb.group")
 	for i := range workMatches.Nodes {
 		node := workMatches.Eq(i)
 
-		work, err := client.parseWorkNode(node)
+		work, err := client.parseTagWorkNode(node)
 		if err != nil {
 			return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing tag work failed")
 		}

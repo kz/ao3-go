@@ -1,45 +1,43 @@
 package ao3
 
 import (
-	"net/http"
 	"github.com/PuerkitoBio/goquery"
 	"regexp"
 	"strings"
 	"strconv"
+	"errors"
 )
 
 type Link struct {
-	text string
-	slug string
+	Text string
+	Slug string
 }
 
-// Work represents a work listed in a list of tags
-// Optional: kudos, bookmarks, hits, recipients, tags, series
-type Work struct {
+// TagWork represents a work listed in a list of tags
+type TagWork struct {
 	Title       string
 	Slug        string
 	LastUpdated string
+
 	IsAnonymous bool
 	Authors     []Link
 	Recipients  []Link
-	Symbols struct {
-		Rating   string
-		Warnings string
-		Category string
-		Status   string
-	}
-	Tags struct {
-		Fandoms       []Link
-		Warnings      []Link
-		Relationships []Link
-		Characters    []Link
-		Freeforms     []Link
-	}
-	Series struct {
-		Name string
-		Slug string
-		Part int
-	}
+
+	Rating   string
+	Warnings string
+	Category string
+	Status   string
+
+	FandomTags       []Link
+	WarningTags      []Link
+	RelationshipTags []Link
+	CharacterTags    []Link
+	FreeformTags     []Link
+
+	IsSeries   bool
+	Series     Link
+	SeriesPart int
+
 	Summary   string
 	Language  string
 	Words     int
@@ -49,9 +47,9 @@ type Work struct {
 	Hits      int
 }
 
-// parseWorkNode parses the standardised listing of a work displayed in the
+// parseTagWorkNode parses the standardised listing of a work displayed in the
 // search results. The summary is sanitized according to the sanitization policy.
-func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Error) {
+func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, error) {
 	workSlugRegex := regexp.MustCompile("^work_(\\S+)$")
 	archivistRegex := regexp.MustCompile("(?m).*by\\s*(.+ \\[archived by .+])")
 	userSlugRegex := regexp.MustCompile("^/(?:users/(.+)/(?:pseuds|gifts).*)|(?:gifts\\?recipient=(.+)\\s*)$")
@@ -59,32 +57,32 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	seriesRegex := regexp.MustCompile("(?m)Part <strong>(.+)</strong> of <a href=\".*/series/(.+)\">(.+)</a>")
 	tagRegex := regexp.MustCompile("(?m)<a class=\"tag\" href=\".*/tags/(.+)/works\">(.+)</a>")
 
-	work := Work{}
+	work := TagWork{}
 
-	// Extract the work slug by matching against the ID
+	// Extract the work Slug by matching against the ID
 	workLink, ok := node.Attr("id")
 	if !ok {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work slug failed")
+		return nil, errors.New("parsing work Slug failed")
 	}
 
 	workSlugMatches := workSlugRegex.FindStringSubmatch(workLink)
 	if len(workSlugMatches) != 2 {
-		return nil, NewError(http.StatusUnprocessableEntity, "regexing work slug failed: "+workLink)
+		return nil, errors.New("regexing work Slug failed: " + workLink)
 	}
 	work.Slug = workSlugMatches[1]
 
 	// Extract the last updated string by matching against the datetime class
 	lastUpdatedMatches := node.Find(".datetime")
 	if len(lastUpdatedMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing last updated with goquery failed")
+		return nil, errors.New("parsing last updated with goquery failed")
 	}
 	work.LastUpdated = lastUpdatedMatches.First().Text()
 
 	// Extract the fandoms
-	work.Tags.Fandoms = []Link{}
+	work.FandomTags = []Link{}
 	fandomMatches := node.Find(".fandoms.heading > a")
 	if len(fandomMatches.Nodes) < 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work fandoms with goquery failed")
+		return nil, errors.New("parsing work fandoms with goquery failed")
 	}
 
 	for i := 0; i < len(fandomMatches.Nodes); i++ {
@@ -92,24 +90,24 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 
 		fandomLink, ok := fandomNode.Attr("href")
 		if !ok {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work fandom link failed")
+			return nil, errors.New("parsing work fandom link failed")
 		}
 
 		fandomSlugMatches := fandomSlugRegex.FindStringSubmatch(fandomLink)
 		if len(fandomSlugMatches) != 2 {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work fandom slug failed")
+			return nil, errors.New("parsing work fandom Slug failed")
 		}
 
-		work.Tags.Fandoms = append(work.Tags.Fandoms, Link{
-			text: fandomNode.Text(),
-			slug: fandomSlugMatches[1],
+		work.FandomTags = append(work.FandomTags, Link{
+			Text: fandomNode.Text(),
+			Slug: fandomSlugMatches[1],
 		})
 	}
 
 	// Extract the language string by matching against <dd class="language">
 	languageMatches := node.Find("dd.language")
 	if len(languageMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work language with goquery failed")
+		return nil, errors.New("parsing work language with goquery failed")
 	}
 	work.Language = languageMatches.First().Text()
 
@@ -118,7 +116,7 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	// contain any count at all.
 	wordsMatches := node.Find("dd.words")
 	if len(wordsMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work word count with goquery failed")
+		return nil, errors.New("parsing work word count with goquery failed")
 	}
 
 	var err error
@@ -132,7 +130,7 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	// Examples: "1/1", "3/?"
 	chaptersMatches := node.Find("dd.chapters")
 	if len(chaptersMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work chapters count failed")
+		return nil, errors.New("parsing work chapters count failed")
 	}
 	work.Chapters = chaptersMatches.First().Text()
 
@@ -142,7 +140,7 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	if len(kudosMatches.Nodes) == 1 {
 		work.Kudos, err = AtoiWithComma(kudosMatches.First().Text())
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work kudos count failed")
+			return nil, errors.New("parsing work kudos count failed")
 		}
 	}
 
@@ -151,7 +149,7 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	if len(bookmarksMatches.Nodes) == 1 {
 		work.Bookmarks, err = AtoiWithComma(bookmarksMatches.First().Text())
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work bookmarks count failed")
+			return nil, errors.New("parsing work bookmarks count failed")
 		}
 	}
 
@@ -160,30 +158,32 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	if len(hitsMatches.Nodes) == 1 {
 		work.Hits, err = AtoiWithComma(hitsMatches.First().Text())
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work hits count failed")
+			return nil, errors.New("parsing work hits count failed")
 		}
 	}
 
 	// Extract the optional series
+	work.IsSeries = false
 	seriesMatches := node.Find(".series > li")
 	if len(seriesMatches.Nodes) == 1 {
 		// Extract the HTML with format "Part <strong>PART</strong> of <a href="/series/SLUG">TITLE</a>"
 		// and use a regex to extract the three relevant parts
 		seriesHTML, err := seriesMatches.Html()
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work series with goquery failed")
+			return nil, errors.New("parsing work series with goquery failed")
 		}
 
 		seriesValueMatches := seriesRegex.FindStringSubmatch(seriesHTML)
 		if len(seriesValueMatches) != 4 {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work series failed")
+			return nil, errors.New("parsing work series failed")
 		}
 
+		work.IsSeries = true
 		work.Series.Slug = seriesValueMatches[2]
-		work.Series.Name = seriesValueMatches[3]
-		work.Series.Part, err = strconv.Atoi(seriesValueMatches[1])
+		work.Series.Text = seriesValueMatches[3]
+		work.SeriesPart, err = strconv.Atoi(seriesValueMatches[1])
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing work series part failed")
+			return nil, errors.New("parsing work series part failed")
 		}
 	}
 
@@ -192,34 +192,34 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	for i := range optionalTagMatches.Nodes {
 		tagNode := optionalTagMatches.Eq(i)
 
-		// Retrieve the slug and text from the nested link
+		// Retrieve the Slug and Text from the nested link
 		tagNodeHtml, err := tagNode.Html()
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "unable to parse tag node HTML")
+			return nil, errors.New("unable to parse tag node HTML")
 		}
 
 		tagMatches := tagRegex.FindStringSubmatch(tagNodeHtml)
 		if len(tagMatches) != 3 {
-			return nil, NewError(http.StatusUnprocessableEntity, "unable to match tag node HTML")
+			return nil, errors.New("unable to match tag node HTML")
 		}
-		link := Link{slug: tagMatches[1], text: tagMatches[2]}
+		link := Link{Slug: tagMatches[1], Text: tagMatches[2]}
 
 		// Retrieve the type of tag
 		tagType, ok := tagNode.Attr("class")
 		if !ok {
-			return nil, NewError(http.StatusUnprocessableEntity, "unable to parse tag type")
+			return nil, errors.New("unable to parse tag type")
 		}
 
 		if strings.Contains(tagType, "warnings") {
-			work.Tags.Warnings = append(work.Tags.Warnings, link)
+			work.WarningTags = append(work.WarningTags, link)
 		} else if strings.Contains(tagType, "relationships") {
-			work.Tags.Relationships = append(work.Tags.Relationships, link)
+			work.RelationshipTags = append(work.RelationshipTags, link)
 		} else if strings.Contains(tagType, "characters") {
-			work.Tags.Characters = append(work.Tags.Characters, link)
+			work.CharacterTags = append(work.CharacterTags, link)
 		} else if strings.Contains(tagType, "freeforms") {
-			work.Tags.Freeforms = append(work.Tags.Freeforms, link)
+			work.FreeformTags = append(work.FreeformTags, link)
 		} else {
-			return nil, NewError(http.StatusUnprocessableEntity, "unable to infer tag type")
+			return nil, errors.New("unable to infer tag type")
 		}
 	}
 
@@ -227,48 +227,48 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	// and whether a work is in progress (iswip)
 	symbolMatches := node.Find(".required-tags")
 	if len(symbolMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to find symbols node")
+		return nil, errors.New("unable to find symbols node")
 	}
 	symbolNode := symbolMatches.First()
 
 	symbolRatingMatches := symbolNode.Find(".rating")
 	if len(symbolRatingMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to find symbol rating node")
+		return nil, errors.New("unable to find symbol rating node")
 	}
 
-	work.Symbols.Rating, ok = symbolRatingMatches.First().Attr("title")
+	work.Rating, ok = symbolRatingMatches.First().Attr("title")
 	if !ok {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to get symbol rating")
+		return nil, errors.New("unable to get symbol rating")
 	}
 
 	symbolWarningsMatches := symbolNode.Find(".warnings")
 	if len(symbolWarningsMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to find symbol warnings node")
+		return nil, errors.New("unable to find symbol warnings node")
 	}
 
-	work.Symbols.Warnings, ok = symbolWarningsMatches.First().Attr("title")
+	work.Warnings, ok = symbolWarningsMatches.First().Attr("title")
 	if !ok {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to get symbol warnings")
+		return nil, errors.New("unable to get symbol warnings")
 	}
 
 	symbolCategoryMatches := symbolNode.Find(".category")
 	if len(symbolCategoryMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to find symbol category node")
+		return nil, errors.New("unable to find symbol category node")
 	}
 
-	work.Symbols.Category, ok = symbolCategoryMatches.First().Attr("title")
+	work.Category, ok = symbolCategoryMatches.First().Attr("title")
 	if !ok {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to get symbol category")
+		return nil, errors.New("unable to get symbol category")
 	}
 
 	symbolCompleteMatches := symbolNode.Find(".iswip")
 	if len(symbolCompleteMatches.Nodes) != 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to find symbol complete node")
+		return nil, errors.New("unable to find symbol complete node")
 	}
 
-	work.Symbols.Status, ok = symbolCompleteMatches.First().Attr("title")
+	work.Status, ok = symbolCompleteMatches.First().Attr("title")
 	if !ok {
-		return nil, NewError(http.StatusUnprocessableEntity, "unable to get symbol complete")
+		return nil, errors.New("unable to get symbol complete")
 	}
 
 	// Retrieve the summary and sanitize the HTML tags
@@ -276,7 +276,7 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	if len(summaryMatches.Nodes) == 1 {
 		summaryHTML, err := summaryMatches.First().Html()
 		if err != nil {
-			return nil, NewError(http.StatusUnprocessableEntity, "unable to fetch HTML from summary node")
+			return nil, errors.New("unable to fetch HTML from summary node")
 		}
 		work.Summary = client.HtmlSanitizer.Sanitize(summaryHTML)
 	}
@@ -296,13 +296,13 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 	// In all other cases, it suffices to iterate through `a[rel="author"]` nodes.
 	headingMatches := node.Find(".header.module > h4.heading")
 	if len(headingMatches.Nodes) < 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work header with goquery failed")
+		return nil, errors.New("parsing work header with goquery failed")
 	}
 	headingNode := headingMatches.First()
 
 	titleLinkMatches := headingNode.Find("a")
 	if len(titleLinkMatches.Nodes) < 1 {
-		return nil, NewError(http.StatusUnprocessableEntity, "parsing work title header with goquery failed")
+		return nil, errors.New("parsing work title header with goquery failed")
 	}
 
 	// Extract the title from the header of the box
@@ -314,16 +314,16 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 			// Extract archivist as detailed above
 			archivistNode := titleLinkMatches.Eq(1)
 			if !archivistRegex.MatchString(archivistNode.Text()) {
-				return nil, NewError(http.StatusUnprocessableEntity, "parsing archivist name failed")
+				return nil, errors.New("parsing archivist name failed")
 			}
 
 			archivistLink, ok := archivistNode.Attr("href")
 			if !ok {
-				return nil, NewError(http.StatusUnprocessableEntity, "parsing work archivist link failed")
+				return nil, errors.New("parsing work archivist link failed")
 			}
 			work.Authors = []Link{{
-				text: archivistRegex.FindStringSubmatch(headingNode.Text())[1],
-				slug: userSlugRegex.FindStringSubmatch(archivistLink)[1],
+				Text: archivistRegex.FindStringSubmatch(headingNode.Text())[1],
+				Slug: userSlugRegex.FindStringSubmatch(archivistLink)[1],
 			}}
 		} else {
 			// Extract authors and recipients
@@ -338,26 +338,26 @@ func (client *AO3Client) parseWorkNode(node *goquery.Selection) (*Work, *AO3Erro
 				user := Link{}
 
 				// Extract user name
-				user.text = userNode.Text()
+				user.Text = userNode.Text()
 
-				// Extract user slug
+				// Extract user Slug
 				userLink, ok := userNode.Attr("href")
 				if !ok {
-					return nil, NewError(http.StatusUnprocessableEntity, "parsing work user link failed")
+					return nil, errors.New("parsing work user link failed")
 				}
 
 				userSlugMatches := userSlugRegex.FindStringSubmatch(userLink)
 				if len(userSlugMatches) != 3 {
-					return nil, NewError(http.StatusUnprocessableEntity, "regexing work user slug failed: "+userLink)
+					return nil, errors.New("regexing work user Slug failed: " + userLink)
 				}
 
 				// Append to the correct type of user
 				userRel, ok := userNode.Attr("rel")
 				if ok && userRel == "author" {
-					user.slug = userSlugMatches[1]
+					user.Slug = userSlugMatches[1]
 					work.Authors = append(work.Authors, user)
 				} else {
-					user.slug = userSlugMatches[1]
+					user.Slug = userSlugMatches[1]
 					work.Recipients = append(work.Recipients, user)
 				}
 			}
