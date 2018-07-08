@@ -20,7 +20,9 @@ This package is designed to be the backend API for the [fanficowl](https://githu
     - Actual endpoint: `https://archiveofourown.org/users/[author]/works`
 - [ ] `GetAuthorSearchOptions` retrieves the possible search options for a author's works
     - Actual endpoint: `https://archiveofourown.org/users/[author]/works`
-- [ ] `GetWork` retrieves the details for a work
+- [ ] `GetSeriesWorks` retrieves a series' works and its metadata
+    - Actual endpoint: `https://archiveofourown.org/series/[series]`
+- [x] `GetWork` retrieves the details for a work
     - Actual endpoint: `https://archiveofourown.org/works/[work]?view_adult=true`
 - [ ] `DownloadWork` downloads the entire work and returns a byte array
     - Actual endpoint: `https://archiveofourown.org/downloads/[path]`
@@ -37,7 +39,7 @@ See `ao3_error.go` for the format of all errors handled by this package.
 
 ## Known Bugs
 
-**GetTaggedWorks**
-
+- Authors which are orphan accounts (e.g., `Lumeilleur` at https://archiveofourown.org/works/4664616) will link to the `orphan_account` user as pseudonyms are ignored
 - Listing works for a tag may return a different work count depending on whether the user is logged in. Solution to implement: add option to authenticate users
-- On the website, if a work is part of a collection, its tags' links are prepended with `/collections/[collection]/`. This package ignores these prefixes, so slugs point to the main tags instead, i.e., `/collections/[collection]/tags/[tag]/works` => `/tags/[tag]/works`.  
+- On the website, if a work is part of a collection, its tags' links are prepended with `/collections/[collection]/`. This package ignores these prefixes, so slugs point to the main tags instead, i.e., `/collections/[collection]/tags/[tag]/works` => `/tags/[tag]/works`.
+- `GetWork` does not link to collections  
