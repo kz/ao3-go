@@ -28,7 +28,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 	// Fetch the HTML page and load the document
 	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
-		return nil, WrapError(http.StatusServiceUnavailable, err, "fetching fandom category returned an err")
+		return nil, WrapError(http.StatusServiceUnavailable, err, "unable to fetch fandom category page")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -37,7 +37,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing fandom category page with goquery failed")
+		return nil, WrapError(http.StatusUnprocessableEntity, err, "unable to parse fandom category page")
 	}
 
 	var fandoms []Fandom
@@ -53,13 +53,13 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 		// Retrieve and parse the letter of the section (e.g., "A")
 		letterNodeMatches := categorySectionNode.Find("h3")
 		if len(letterNodeMatches.Nodes) != 1 {
-			return nil, NewError(http.StatusUnprocessableEntity, "parsing a fandom category letter with goquery did not return one node")
+			return nil, NewError(http.StatusUnprocessableEntity, "unable to match fandom category letter node")
 		}
 		letterNode := letterNodeMatches.First()
 
 		matchedLetter := letterRegex.FindStringSubmatch(letterNode.Text())
 		if len(matchedLetter) != 2 {
-			return nil, NewError(http.StatusUnprocessableEntity, "regexing a fandom category letter slug failed: "+letterNode.Text())
+			return nil, NewError(http.StatusUnprocessableEntity, "unable to parse fandom category letter: "+letterNode.Text())
 		}
 		letter := matchedLetter[1]
 
@@ -74,19 +74,19 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 			// Extract and parse fandom works count (e.g., 468)
 			matchedCount := countRegex.FindStringSubmatch(fandomNode.Text())
 			if len(matchedCount) < 1 {
-				return nil, NewError(http.StatusUnprocessableEntity, "regexing a fandom category's fandom count failed: "+fandomNode.Text())
+				return nil, NewError(http.StatusUnprocessableEntity, "unable to parse fandom category work count: "+fandomNode.Text())
 			}
 
 			count, err := strconv.Atoi(matchedCount[len(matchedCount)-1])
 			if err != nil {
-				return nil, WrapError(http.StatusUnprocessableEntity, err, "strToInt on a fandom category's fandom count failed: "+fandomNode.Text())
+				return nil, WrapError(http.StatusUnprocessableEntity, err, "unable to convert fandom category work count to integer: "+fandomNode.Text())
 			}
 			fandom.count = count
 
 			// Extract the node containing the name and slug of the fandom
 			fandomLinkNodeMatches := fandomNode.Find("a")
 			if len(fandomLinkNodeMatches.Nodes) != 1 {
-				return nil, NewError(http.StatusUnprocessableEntity, "parsing a fandom category's fandom link with goquery did not return one node")
+				return nil, NewError(http.StatusUnprocessableEntity, "unable to match fandom category fandom's name/slug node")
 			}
 			fandomLinkNode := fandomLinkNodeMatches.First()
 
@@ -96,12 +96,12 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 			// Extract and parse the slug (e.g., "Artemis%20Fowl%20-%20Eoin%20Colfer")
 			matchedFandomLink, ok := fandomLinkNode.Attr("href")
 			if !ok {
-				return nil, NewError(http.StatusUnprocessableEntity, "extracting a fandom category's fandom link href failed")
+				return nil, NewError(http.StatusUnprocessableEntity, "unable to extract href attribute from fandom category fandom's link")
 			}
 
 			matchedSlug := slugRegex.FindStringSubmatch(matchedFandomLink)
 			if len(matchedSlug) != 2 {
-				return nil, NewError(http.StatusUnprocessableEntity, "regexing a fandom category's fandom link href failed: "+matchedFandomLink)
+				return nil, NewError(http.StatusUnprocessableEntity, "unable to parse href attribute of fandom category fandom link: "+matchedFandomLink)
 			}
 			fandom.slug = matchedSlug[1]
 

@@ -13,8 +13,8 @@ type Link struct {
 	Slug string
 }
 
-// TagWork represents a work listed in a list of tags
-type TagWork struct {
+// IndexedWork represents a work listed in a list of tags
+type IndexedWork struct {
 	Title       string
 	Slug        string
 	LastUpdated string
@@ -47,9 +47,9 @@ type TagWork struct {
 	Hits      int
 }
 
-// parseTagWorkNode parses the standardised listing of a work displayed in the
+// parseIndexedWorkNode parses the standardised listing of a work displayed in the
 // search results. The summary is sanitized according to the sanitization policy.
-func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, error) {
+func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*IndexedWork, error) {
 	workSlugRegex := regexp.MustCompile("^work_(\\S+)$")
 	archivistRegex := regexp.MustCompile("(?m).*by\\s*(.+ \\[archived by .+])")
 	userSlugRegex := regexp.MustCompile("^/(?:users/(.+)/(?:pseuds|gifts).*)|(?:gifts\\?recipient=(.+)\\s*)$")
@@ -57,24 +57,24 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	seriesRegex := regexp.MustCompile("(?m)Part <strong>(.+)</strong> of <a href=\".*/series/(.+)\">(.+)</a>")
 	tagRegex := regexp.MustCompile("(?m)<a class=\"tag\" href=\".*/tags/(.+)/works\">(.+)</a>")
 
-	work := TagWork{}
+	work := IndexedWork{}
 
-	// Extract the work Slug by matching against the ID
+	// Extract the work slug by matching against the ID
 	workLink, ok := node.Attr("id")
 	if !ok {
-		return nil, errors.New("parsing work Slug failed")
+		return nil, errors.New("unable to extract ID attribute from work node")
 	}
 
 	workSlugMatches := workSlugRegex.FindStringSubmatch(workLink)
 	if len(workSlugMatches) != 2 {
-		return nil, errors.New("regexing work Slug failed: " + workLink)
+		return nil, errors.New(": " + workLink)
 	}
 	work.Slug = workSlugMatches[1]
 
 	// Extract the last updated string by matching against the datetime class
 	lastUpdatedMatches := node.Find(".datetime")
 	if len(lastUpdatedMatches.Nodes) != 1 {
-		return nil, errors.New("parsing last updated with goquery failed")
+		return nil, errors.New("unable to match last updated node")
 	}
 	work.LastUpdated = lastUpdatedMatches.First().Text()
 
@@ -82,7 +82,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	work.FandomTags = []Link{}
 	fandomMatches := node.Find(".fandoms.heading > a")
 	if len(fandomMatches.Nodes) < 1 {
-		return nil, errors.New("parsing work fandoms with goquery failed")
+		return nil, errors.New("unable to match fandom metadata node")
 	}
 
 	for i := 0; i < len(fandomMatches.Nodes); i++ {
@@ -90,12 +90,12 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 
 		fandomLink, ok := fandomNode.Attr("href")
 		if !ok {
-			return nil, errors.New("parsing work fandom link failed")
+			return nil, errors.New("unable to extract href attribute from fandom metadata")
 		}
 
 		fandomSlugMatches := fandomSlugRegex.FindStringSubmatch(fandomLink)
 		if len(fandomSlugMatches) != 2 {
-			return nil, errors.New("parsing work fandom Slug failed")
+			return nil, errors.New("unable to parse fandom link")
 		}
 
 		work.FandomTags = append(work.FandomTags, Link{
@@ -107,7 +107,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	// Extract the language string by matching against <dd class="language">
 	languageMatches := node.Find("dd.language")
 	if len(languageMatches.Nodes) != 1 {
-		return nil, errors.New("parsing work language with goquery failed")
+		return nil, errors.New("unable to match language node")
 	}
 	work.Language = languageMatches.First().Text()
 
@@ -116,10 +116,13 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	// contain any count at all.
 	wordsMatches := node.Find("dd.words")
 	if len(wordsMatches.Nodes) != 1 {
-		return nil, errors.New("parsing work word count with goquery failed")
+		return nil, errors.New("unable to match word count node")
 	}
 
 	var err error
+
+	// Extracting the count deviates from the standard if statement pattern as
+	// the word count node may be present but the word count itself may be missing.
 	wordMatch := wordsMatches.First().Text()
 	wordCount, err := AtoiWithComma(wordMatch)
 	if err == nil {
@@ -130,7 +133,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	// Examples: "1/1", "3/?"
 	chaptersMatches := node.Find("dd.chapters")
 	if len(chaptersMatches.Nodes) != 1 {
-		return nil, errors.New("parsing work chapters count failed")
+		return nil, errors.New("unable to match work chapters count node")
 	}
 	work.Chapters = chaptersMatches.First().Text()
 
@@ -140,7 +143,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	if len(kudosMatches.Nodes) == 1 {
 		work.Kudos, err = AtoiWithComma(kudosMatches.First().Text())
 		if err != nil {
-			return nil, errors.New("parsing work kudos count failed")
+			return nil, errors.New("unable to convert kudos count to integer")
 		}
 	}
 
@@ -149,7 +152,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	if len(bookmarksMatches.Nodes) == 1 {
 		work.Bookmarks, err = AtoiWithComma(bookmarksMatches.First().Text())
 		if err != nil {
-			return nil, errors.New("parsing work bookmarks count failed")
+			return nil, errors.New("unable to convert bookmarks count to integer")
 		}
 	}
 
@@ -158,7 +161,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	if len(hitsMatches.Nodes) == 1 {
 		work.Hits, err = AtoiWithComma(hitsMatches.First().Text())
 		if err != nil {
-			return nil, errors.New("parsing work hits count failed")
+			return nil, errors.New("unable to convert hits count to integer")
 		}
 	}
 
@@ -170,12 +173,12 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 		// and use a regex to extract the three relevant parts
 		seriesHTML, err := seriesMatches.Html()
 		if err != nil {
-			return nil, errors.New("parsing work series with goquery failed")
+			return nil, errors.New("unable to extract HTML attribute from series node")
 		}
 
 		seriesValueMatches := seriesRegex.FindStringSubmatch(seriesHTML)
 		if len(seriesValueMatches) != 4 {
-			return nil, errors.New("parsing work series failed")
+			return nil, errors.New("unable to parse series metadata from series node HTML")
 		}
 
 		work.IsSeries = true
@@ -183,7 +186,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 		work.Series.Text = seriesValueMatches[3]
 		work.SeriesPart, err = strconv.Atoi(seriesValueMatches[1])
 		if err != nil {
-			return nil, errors.New("parsing work series part failed")
+			return nil, errors.New("unable to convert series part to integer")
 		}
 	}
 
@@ -195,19 +198,19 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 		// Retrieve the Slug and Text from the nested link
 		tagNodeHtml, err := tagNode.Html()
 		if err != nil {
-			return nil, errors.New("unable to parse tag node HTML")
+			return nil, errors.New("unable to extract HTML from optional tag node")
 		}
 
 		tagMatches := tagRegex.FindStringSubmatch(tagNodeHtml)
 		if len(tagMatches) != 3 {
-			return nil, errors.New("unable to match tag node HTML")
+			return nil, errors.New("unable to extract metadata from optional tag node HTML")
 		}
 		link := Link{Slug: tagMatches[1], Text: tagMatches[2]}
 
 		// Retrieve the type of tag
 		tagType, ok := tagNode.Attr("class")
 		if !ok {
-			return nil, errors.New("unable to parse tag type")
+			return nil, errors.New("unable to extract class attribute from tag node")
 		}
 
 		if strings.Contains(tagType, "warnings") {
@@ -219,7 +222,7 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 		} else if strings.Contains(tagType, "freeforms") {
 			work.FreeformTags = append(work.FreeformTags, link)
 		} else {
-			return nil, errors.New("unable to infer tag type")
+			return nil, errors.New("unable to infer tag type from HTML")
 		}
 	}
 
@@ -227,48 +230,48 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	// and whether a work is in progress (iswip)
 	symbolMatches := node.Find(".required-tags")
 	if len(symbolMatches.Nodes) != 1 {
-		return nil, errors.New("unable to find symbols node")
+		return nil, errors.New("unable to match symbols node")
 	}
 	symbolNode := symbolMatches.First()
 
 	symbolRatingMatches := symbolNode.Find(".rating")
 	if len(symbolRatingMatches.Nodes) != 1 {
-		return nil, errors.New("unable to find symbol rating node")
+		return nil, errors.New("unable to match symbol rating node")
 	}
 
 	work.Rating, ok = symbolRatingMatches.First().Attr("title")
 	if !ok {
-		return nil, errors.New("unable to get symbol rating")
+		return nil, errors.New("unable to extract title attribute from symbol rating node")
 	}
 
 	symbolWarningsMatches := symbolNode.Find(".warnings")
 	if len(symbolWarningsMatches.Nodes) != 1 {
-		return nil, errors.New("unable to find symbol warnings node")
+		return nil, errors.New("unable to match symbol warnings node")
 	}
 
 	work.Warnings, ok = symbolWarningsMatches.First().Attr("title")
 	if !ok {
-		return nil, errors.New("unable to get symbol warnings")
+		return nil, errors.New("unable to extract title attribute from symbol warnings node")
 	}
 
 	symbolCategoryMatches := symbolNode.Find(".category")
 	if len(symbolCategoryMatches.Nodes) != 1 {
-		return nil, errors.New("unable to find symbol category node")
+		return nil, errors.New("unable to match symbol category node")
 	}
 
 	work.Category, ok = symbolCategoryMatches.First().Attr("title")
 	if !ok {
-		return nil, errors.New("unable to get symbol category")
+		return nil, errors.New("unable to extract title attribute from symbol category node")
 	}
 
 	symbolCompleteMatches := symbolNode.Find(".iswip")
 	if len(symbolCompleteMatches.Nodes) != 1 {
-		return nil, errors.New("unable to find symbol complete node")
+		return nil, errors.New("unable to match symbol complete node")
 	}
 
 	work.Status, ok = symbolCompleteMatches.First().Attr("title")
 	if !ok {
-		return nil, errors.New("unable to get symbol complete")
+		return nil, errors.New("unable to extract title attribute from symbol complete node")
 	}
 
 	// Retrieve the summary and sanitize the HTML tags
@@ -296,13 +299,13 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 	// In all other cases, it suffices to iterate through `a[rel="author"]` nodes.
 	headingMatches := node.Find(".header.module > h4.heading")
 	if len(headingMatches.Nodes) < 1 {
-		return nil, errors.New("parsing work header with goquery failed")
+		return nil, errors.New("unable to extract heading metadata node")
 	}
 	headingNode := headingMatches.First()
 
 	titleLinkMatches := headingNode.Find("a")
 	if len(titleLinkMatches.Nodes) < 1 {
-		return nil, errors.New("parsing work title header with goquery failed")
+		return nil, errors.New("unable to extract work title header node")
 	}
 
 	// Extract the title from the header of the box
@@ -340,15 +343,15 @@ func (client *AO3Client) parseTagWorkNode(node *goquery.Selection) (*TagWork, er
 				// Extract user name
 				user.Text = userNode.Text()
 
-				// Extract user Slug
+				// Extract user slug
 				userLink, ok := userNode.Attr("href")
 				if !ok {
-					return nil, errors.New("parsing work user link failed")
+					return nil, errors.New("unable to extract href attribute from user link")
 				}
 
 				userSlugMatches := userSlugRegex.FindStringSubmatch(userLink)
 				if len(userSlugMatches) != 3 {
-					return nil, errors.New("regexing work user Slug failed: " + userLink)
+					return nil, errors.New("unable to parse metadata from work user link node: " + userLink)
 				}
 
 				// Append to the correct type of user

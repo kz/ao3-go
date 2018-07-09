@@ -22,7 +22,7 @@ func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 	// Fetch the HTML page and load the document
 	res, err := client.HttpClient.Get(baseURL + endpoint)
 	if err != nil {
-		return nil, WrapError(http.StatusServiceUnavailable, err, "fetching fandom categories returned an err")
+		return nil, WrapError(http.StatusServiceUnavailable, err, "unable to fetch fandom categories page")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
@@ -31,7 +31,7 @@ func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing fandom categories page with goquery failed")
+		return nil, WrapError(http.StatusUnprocessableEntity, err, "unable to parse fandom categories page")
 	}
 
 	var fandomCategories []FandomCategory
@@ -50,12 +50,12 @@ func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 		// Extract and parse the slug (e.g., "Anime%20*a*%20Manga")
 		link, ok := categoryNode.Attr("href")
 		if !ok {
-			return nil, NewError(http.StatusUnprocessableEntity, "extracting a fandom categories' category link href failed")
+			return nil, NewError(http.StatusUnprocessableEntity, "unable to find href attribute in category link")
 		}
 
 		slug := slugRegex.FindStringSubmatch(link)
 		if len(slug) != 2 {
-			return nil, NewError(http.StatusUnprocessableEntity, "regexing a fandom categories' category link href failed: "+link)
+			return nil, NewError(http.StatusUnprocessableEntity, "unable to process category link: "+link)
 		}
 		fandomCategory.slug = slug[1]
 

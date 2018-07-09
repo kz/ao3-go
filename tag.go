@@ -9,7 +9,7 @@ import (
 
 // TagWorks is a represented of a paginated /tags/.../works page
 type TagWorks struct {
-	Works []TagWork
+	Works []IndexedWork
 	Count int
 
 	// Pagination-related values
@@ -97,14 +97,14 @@ func (client *AO3Client) GetTagWorks(tag string, page int) (*TagWorks, *AO3Error
 	}
 
 	// Fetch the list of works for the page
-	tagWorks.Works = []TagWork{}
+	tagWorks.Works = []IndexedWork{}
 
 	// Matches against the box displaying a single work
 	workMatches := doc.Find(".work.blurb.group")
 	for i := range workMatches.Nodes {
 		node := workMatches.Eq(i)
 
-		work, err := client.parseTagWorkNode(node)
+		work, err := client.parseIndexedWorkNode(node)
 		if err != nil {
 			return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing tag work failed")
 		}
