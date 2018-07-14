@@ -315,18 +315,25 @@ func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*Indexed
 	if !work.IsAnonymous {
 		if strings.Contains(headingNode.Text(), "[archived by") {
 			// Extract archivist as detailed above
-			archivistNode := titleLinkMatches.Eq(1)
-			if !archivistRegex.MatchString(archivistNode.Text()) {
+			archivistNameMatches := archivistRegex.FindStringSubmatch(headingNode.Text())
+			if len(archivistNameMatches) < 1 {
 				return nil, errors.New("parsing archivist name failed")
 			}
 
+			archivistNode := titleLinkMatches.Eq(1)
 			archivistLink, ok := archivistNode.Attr("href")
 			if !ok {
-				return nil, errors.New("parsing work archivist link failed")
+				return nil, errors.New("unable to extract href attribute from archivist link")
 			}
+
+			archivistSlugMatches := userSlugRegex.FindStringSubmatch(archivistLink)
+			if len(archivistSlugMatches) != 3 {
+				return nil, errors.New("unable to extract slug from archivist link")
+			}
+
 			work.Authors = []Link{{
-				Text: archivistRegex.FindStringSubmatch(headingNode.Text())[1],
-				Slug: userSlugRegex.FindStringSubmatch(archivistLink)[1],
+				Text: archivistNameMatches[1],
+				Slug: archivistSlugMatches[1],
 			}}
 		} else {
 			// Extract authors and recipients
