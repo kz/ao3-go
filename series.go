@@ -42,7 +42,7 @@ func (client *AO3Client) GetSeries(id string) (*Series, *AO3Error) {
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		return nil, WrapError(http.StatusUnprocessableEntity, err, "parsing tagged works page with goquery failed")
+		return nil, WrapError(http.StatusUnprocessableEntity, err, "unable to parse series page")
 	}
 
 	var series Series
