@@ -18,7 +18,7 @@ This package is designed to be the backend API for the [fanficowl](https://githu
     - Actual endpoint: `https://archiveofourown.org/tags/[tag]/works`
 - [ ] `GetAuthorWorks` retrieves a list of works for a author with optional search parameters
     - Actual endpoint: `https://archiveofourown.org/users/[author]/works`
-- [ ] `GetAuthorSearchOptions` retrieves the possible search options for a author's works
+- [ ] `GetAuthorSearchOptions` retrieves the possible search options for an author's works
     - Actual endpoint: `https://archiveofourown.org/users/[author]/works`
 - [x] `GetSeriesWorks` retrieves a series' works and its metadata
     - Actual endpoint: `https://archiveofourown.org/series/[series]`
