@@ -37,9 +37,11 @@ This package is designed to be the backend API for the [fanficowl](https://githu
 ## Error Handling
 See `ao3_error.go` for the format of all errors handled by this package.
 
-## Known Bugs
-
-- Authors which are orphan accounts (e.g., `Lumeilleur` at https://archiveofourown.org/works/4664616) will link to the `orphan_account` user as pseudonyms are ignored
-- Listing works for a tag may return a different work count depending on whether the user is logged in. Solution to implement: add option to authenticate users
-- On the website, if a work is part of a collection, its tags' links are prepended with `/collections/[collection]/`. This package ignores these prefixes, so slugs point to the main tags instead, i.e., `/collections/[collection]/tags/[tag]/works` => `/tags/[tag]/works`.
-- `GetWork` does not link to collections  
+## Known Issues
+| Priority | Affected                  | Description                                                                                                                                                                                                                                                                  |
+| -------- | --------------            | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| High     | Lists of works            | Listing works for a tag may return a different work count depending on whether the user is logged in. Solution to implement: add option to authenticate users.                                                                                                               |
+| Medium   | `IndexedWorkNode`         | `IndexedWorkNode` is missing integration tests. As a fundamental part of this codebase, extensive tests should be written.                                                                                                                                                   |
+| Low      | Author links              | Authors which are orphan accounts (e.g., `Lumeilleur` at https://archiveofourown.org/works/4664616) will link to the `orphan_account` user as pseudonyms are ignored.                                                                                                        |
+| Low      | Works part of collections | On the website, if a work is part of a collection, its tags' links are prepended with `/collections/[collection]/`. This package ignores these prefixes, so slugs point to the main tags instead, i.e., `/collections/[collection]/tags/[tag]/works` => `/tags/[tag]/works`. |
+| Low      | `GetWork`                 | GetWork does not link to collections.                                                                                                                                                                                                                                        |
