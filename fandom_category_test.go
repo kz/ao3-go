@@ -16,7 +16,7 @@ func TestGetFandomCategory(t *testing.T) {
 
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	category, err := client.GetFandomCategory(exampleCategory)

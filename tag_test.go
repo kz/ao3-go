@@ -2,10 +2,6 @@ package ao3
 
 import (
 	"testing"
-	"net/http"
-	"github.com/PuerkitoBio/goquery"
-	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -37,17 +33,4 @@ func TestGetTaggedWorks(t *testing.T) {
 	}
 
 	wg.Wait()
-}
-
-func TestAuthors(t *testing.T) {
-	res, _ := http.Get("https://archiveofourown.org/users/dairesfanficrefuge_archivist/")
-	defer res.Body.Close()
-
-	doc, _ := goquery.NewDocumentFromReader(res.Body)
-
-	workMatches := doc.Find(".work.blurb.group .header.module > h4.heading")
-	for i := range workMatches.Nodes {
-		workNode := workMatches.Eq(i)
-		fmt.Printf("%v///", strings.Contains(workNode.Text(), "[archived by"))
-	}
 }

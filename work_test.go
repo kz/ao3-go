@@ -58,12 +58,12 @@ func TestGetWork(t *testing.T) {
 	// Fetch the work
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	work, err := client.GetWork(workId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// Perform equality tests
@@ -136,12 +136,12 @@ func TestGetWorkExtractsSeries(t *testing.T) {
 
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	work, err := client.GetWork(workId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	assert.Equal(t, expectedEqual.IsSeries, work.IsSeries)
@@ -156,12 +156,12 @@ func TestGetWorkDetectsAnonymousAuthor(t *testing.T) {
 
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	work, err := client.GetWork(workId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	assert.Equal(t, true, work.IsAnonymous)
@@ -172,12 +172,12 @@ func TestGetWorkExtractsMultipleAuthors(t *testing.T) {
 
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	work, err := client.GetWork(workId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	expectedAuthors := []Link{

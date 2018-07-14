@@ -36,12 +36,12 @@ func TestGetSeries(t *testing.T) {
 	// Fetch the work
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	series, err := client.GetSeries(seriesId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// Perform equality tests
@@ -95,12 +95,12 @@ func TestGetSeriesWithMultipleCreators(t *testing.T) {
 	// Fetch the work
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	series, err := client.GetSeries(seriesId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	assert.Equal(t, false, series.IsAnonymous)
@@ -113,12 +113,12 @@ func TestGetSeriesWithAnonymousCreator(t *testing.T) {
 	// Fetch the work
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	series, err := client.GetSeries(seriesId)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	assert.Equal(t, true, series.IsAnonymous)
