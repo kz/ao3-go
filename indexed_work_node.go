@@ -38,10 +38,12 @@ type IndexedWork struct {
 	Series     Link
 	SeriesPart int
 
-	Summary   string
+	Summary string
+
 	Language  string
 	Words     int
 	Chapters  string
+	Comments  int
 	Kudos     int
 	Bookmarks int
 	Hits      int
@@ -137,6 +139,15 @@ func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*Indexed
 	}
 	work.Chapters = chaptersMatches.First().Text()
 
+	// Extract the optional comments count by matching against <dd class="comments">
+	commentsMatches := node.Find("dd.comments > a")
+	if len(commentsMatches.Nodes) == 1 {
+		work.Comments, err = AtoiWithComma(commentsMatches.First().Text())
+		if err != nil {
+			return nil, errors.New("unable to convert bookmarks count to integer")
+		}
+	}
+
 	// Extract the optional kudos count by matching against <dd class="kudos">
 	// It is assumed that the kudos count will not contain numbers
 	kudosMatches := node.Find("dd.kudos > a")
@@ -148,7 +159,7 @@ func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*Indexed
 	}
 
 	// Extract the optional bookmarks count by matching against <dd class="bookmarks">
-	bookmarksMatches := node.Find("dd.bookmarks  > a")
+	bookmarksMatches := node.Find("dd.bookmarks > a")
 	if len(bookmarksMatches.Nodes) == 1 {
 		work.Bookmarks, err = AtoiWithComma(bookmarksMatches.First().Text())
 		if err != nil {
@@ -191,6 +202,10 @@ func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*Indexed
 	}
 
 	// Extract all optional tags
+	work.WarningTags = []Link{}
+	work.RelationshipTags = []Link{}
+	work.CharacterTags = []Link{}
+	work.FreeformTags = []Link{}
 	optionalTagMatches := node.Find("ul.tags.commas > li")
 	for i := range optionalTagMatches.Nodes {
 		tagNode := optionalTagMatches.Eq(i)
@@ -312,6 +327,8 @@ func (client *AO3Client) parseIndexedWorkNode(node *goquery.Selection) (*Indexed
 	work.Title = titleLinkMatches.First().Text()
 
 	work.IsAnonymous = len(titleLinkMatches.Nodes) == 1
+	work.Authors = []Link{}
+	work.Recipients = []Link{}
 	if !work.IsAnonymous {
 		if strings.Contains(headingNode.Text(), "[archived by") {
 			// Extract archivist as detailed above
