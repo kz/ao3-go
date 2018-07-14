@@ -10,6 +10,8 @@ import (
 // multiple authors and all HTML tags in summaries.
 func TestGetWork(t *testing.T) {
 	const workId = "5191202"
+
+	// The actual fields must be equal to the expected fields
 	expectedEqual := Work{
 		Title:       "A Complete Guide to 'Limited HTML' on AO3",
 		IsAnonymous: false,
@@ -39,6 +41,7 @@ func TestGetWork(t *testing.T) {
 		Chapters:  "3/4",
 	}
 
+	// The actual fields must be greater than or equal to the expected fields
 	expectedMin := Work{
 		Comments:  126,
 		Kudos:     337,
@@ -46,11 +49,13 @@ func TestGetWork(t *testing.T) {
 		Hits:      18530,
 	}
 
+	// The expected fields must contain the actual fields
 	expectedContains := Work{
 		Summary:          "a <b><em>comprehensive</em></b> guide, dividing all of the available tags into the following categories:</p><p>1. Text Formatting (in-line HTML)<br/>",
 		HTMLDownloadSlug: "Co/CodenameCarrot/5191202/A%20Complete%20Guide%20to%20Limited.html?updated_at=",
 	}
 
+	// Fetch the work
 	client, err := InitAO3Client(nil, AO3Policy)
 	if err != nil {
 		t.Error(err.Error())
@@ -61,6 +66,7 @@ func TestGetWork(t *testing.T) {
 		t.Error(err.Error())
 	}
 
+	// Perform equality tests
 	equalityTests := []struct {
 		expected interface{}
 		actual   interface{}
@@ -86,6 +92,7 @@ func TestGetWork(t *testing.T) {
 		assert.Equal(t, test.expected, test.actual)
 	}
 
+	// Perform min tests
 	moreThanEqualToTests := []struct {
 		expected int
 		actual   int
@@ -104,6 +111,7 @@ func TestGetWork(t *testing.T) {
 		}
 	}
 
+	// Perform contains tests
 	containsTests := []struct {
 		expected interface{}
 		actual   interface{}
