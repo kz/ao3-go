@@ -5,6 +5,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestDownloadWork tests downloading the HTML of a fadnom
+func TestDownloadWork(t *testing.T) {
+	const path = "Co/CodenameCarrot/5191202/A%20Complete%20Guide%20to%20Limited.html?updated_at=1511633931"
+
+	client, err := InitAO3Client(nil, AO3Policy)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	bytes, err := client.DownloadWork(path)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	assert.Contains(t, string(bytes), "<!DOCTYPE html")
+	assert.True(t, len(string(bytes)) > 30000)
+}
+
 // TestGetWork is an integration test handling a general work. Edge cases which
 // are not caught include some multiple optional tags, series, anonymous and
 // multiple authors and all HTML tags in summaries.

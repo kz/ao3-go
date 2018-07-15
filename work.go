@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"errors"
 	"strings"
+	"io/ioutil"
 )
 
 type Work struct {
@@ -37,6 +38,27 @@ type Work struct {
 	Summary string
 
 	HTMLDownloadSlug string
+}
+
+// DownloadWork downloads the work and returns a byte array
+func (client *AO3Client) DownloadWork(path string) ([]byte, *AO3Error) {
+	endpoint := "/downloads/" + path
+
+	res, err := client.HttpClient.Get(baseURL + endpoint)
+	if err != nil {
+		return nil, WrapError(http.StatusServiceUnavailable, err, "downloading work returned an err")
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, NewError(res.StatusCode, "downloading work returned a non-200 status code")
+	}
+
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil ,WrapError(http.StatusUnprocessableEntity, err, "unable to read bytes from response")
+	}
+
+	return bytes, nil
 }
 
 // GetWork retrieves a work from its page

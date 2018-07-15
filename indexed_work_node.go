@@ -8,11 +8,6 @@ import (
 	"errors"
 )
 
-type Link struct {
-	Text string
-	Slug string
-}
-
 // IndexedWork represents a work listed in a list of tags
 type IndexedWork struct {
 	Title       string

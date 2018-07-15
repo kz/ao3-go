@@ -12,7 +12,7 @@ This package is designed to be the backend API for the [fanficowl](https://githu
     - Actual endpoint: `https://archiveofourown.org/media`
 - [x] `GetFandomCategory` retrieves the fandoms under a category
     - Actual endpoint: `https://archiveofourown.org/media/[category]/fandoms`
-- [ ] `GetTaggedWorks` retrieves a paginated list of works for a tag with optional search parameters
+- [x] `GetTaggedWorks` retrieves a paginated list of works for a tag with optional search parameters
     - Actual endpoint: `https://archiveofourown.org/tags/[tag]/works?page=[page]`
 - [ ] `GetTagSearchOptions` retrieves the possible search options for a tag's works
     - Actual endpoint: `https://archiveofourown.org/tags/[tag]/works`
@@ -24,7 +24,7 @@ This package is designed to be the backend API for the [fanficowl](https://githu
     - Actual endpoint: `https://archiveofourown.org/series/[series]`
 - [x] `GetWork` retrieves the details for a work
     - Actual endpoint: `https://archiveofourown.org/works/[work]?view_adult=true`
-- [ ] `DownloadWork` downloads the entire work and returns a byte array
+- [x] `DownloadWork` downloads the entire work and returns a byte array
     - Actual endpoint: `https://archiveofourown.org/downloads/[path]`
 - [ ] `Authenticate` authenticates the user and retrieves the session cookie
     - Actual endpoint: `https://archiveofourown.org/user_sessions`

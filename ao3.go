@@ -37,3 +37,9 @@ func InitAO3Client(client *http.Client, sanitizationPolicy SanitizationPolicy) (
 		HtmlSanitizer: sanitizer,
 	}, nil
 }
+
+// Link is an internal representation of links parsed from the website
+type Link struct {
+	Text string
+	Slug string
+}
