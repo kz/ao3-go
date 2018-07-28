@@ -8,10 +8,10 @@ import (
 )
 
 type Fandom struct {
-	name   string
-	letter string
-	slug   string
-	count  int
+	Name   string
+	Letter string
+	Slug   string
+	Count  int
 }
 
 // GetFandomCategory returns a list of all the fandoms under a category.
@@ -69,7 +69,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 		for i := range fandomsMatch.Nodes {
 			fandomNode := fandomsMatch.Eq(i)
 
-			fandom := Fandom{letter: letter}
+			fandom := Fandom{Letter: letter}
 
 			// Extract and parse fandom works count (e.g., 468)
 			matchedCount := countRegex.FindStringSubmatch(fandomNode.Text())
@@ -81,7 +81,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 			if err != nil {
 				return nil, WrapError(http.StatusUnprocessableEntity, err, "unable to convert fandom category work count to integer: "+fandomNode.Text())
 			}
-			fandom.count = count
+			fandom.Count = count
 
 			// Extract the node containing the name and slug of the fandom
 			fandomLinkNodeMatches := fandomNode.Find("a")
@@ -91,7 +91,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 			fandomLinkNode := fandomLinkNodeMatches.First()
 
 			// Extract the name directly (e.g., "Artemis Fowl - Eoin Colfer")
-			fandom.name = fandomLinkNode.Text()
+			fandom.Name = fandomLinkNode.Text()
 
 			// Extract and parse the slug (e.g., "Artemis%20Fowl%20-%20Eoin%20Colfer")
 			matchedFandomLink, ok := fandomLinkNode.Attr("href")
@@ -103,7 +103,7 @@ func (client *AO3Client) GetFandomCategory(category string) ([]Fandom, *AO3Error
 			if len(matchedSlug) != 2 {
 				return nil, NewError(http.StatusUnprocessableEntity, "unable to parse href attribute of fandom category fandom link: "+matchedFandomLink)
 			}
-			fandom.slug = matchedSlug[1]
+			fandom.Slug = matchedSlug[1]
 
 			fandoms = append(fandoms, fandom)
 		}

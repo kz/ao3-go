@@ -7,8 +7,8 @@ import (
 )
 
 type FandomCategory struct {
-	name string
-	slug string
+	Name string
+	Slug string
 }
 
 // GetFandomCategories scrapes the fandoms list.
@@ -45,7 +45,7 @@ func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 
 		// Extract name (e.g., "Anime & Manga")
 		name := categoryNode.Text()
-		fandomCategory.name = name
+		fandomCategory.Name = name
 
 		// Extract and parse the slug (e.g., "Anime%20*a*%20Manga")
 		link, ok := categoryNode.Attr("href")
@@ -57,7 +57,7 @@ func (client *AO3Client) GetFandomCategories() ([]FandomCategory, *AO3Error) {
 		if len(slug) != 2 {
 			return nil, NewError(http.StatusUnprocessableEntity, "unable to process category link: "+link)
 		}
-		fandomCategory.slug = slug[1]
+		fandomCategory.Slug = slug[1]
 
 		fandomCategories = append(fandomCategories, fandomCategory)
 	}

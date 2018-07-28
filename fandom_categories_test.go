@@ -7,8 +7,8 @@ import (
 
 func TestGetFandomCategories(t *testing.T) {
 	exampleExpectedCategory := FandomCategory{
-		name: "Anime & Manga",
-		slug: "Anime%20*a*%20Manga",
+		Name: "Anime & Manga",
+		Slug: "Anime%20*a*%20Manga",
 	}
 
 	client, err := InitAO3Client(nil, AO3Policy)

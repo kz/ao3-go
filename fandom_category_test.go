@@ -9,8 +9,8 @@ func TestGetFandomCategory(t *testing.T) {
 
 	const expectedMinFandomsCount = 1000
 	expectedFandom := Fandom{
-		name: "Artemis Fowl - Eoin Colfer",
-		slug: "Artemis%20Fowl%20-%20Eoin%20Colfer",
+		Name: "Artemis Fowl - Eoin Colfer",
+		Slug: "Artemis%20Fowl%20-%20Eoin%20Colfer",
 	}
 	const expectedMinFandomCount = 300
 
@@ -31,15 +31,15 @@ func TestGetFandomCategory(t *testing.T) {
 	// Look for an expected fandom, ensuring its count meets the expected minimum
 	hasExpectedFandom := false
 	for _, fandom := range category {
-		if fandom.name != expectedFandom.name {
+		if fandom.Name != expectedFandom.Name {
 			continue
 		}
 
-		if fandom.slug != expectedFandom.slug {
+		if fandom.Slug != expectedFandom.Slug {
 			t.Fatal("Slug of given fandom does not match expected slug")
 		}
 
-		if fandom.count < expectedMinFandomCount {
+		if fandom.Count < expectedMinFandomCount {
 			t.Fatal("Count of given fandom is less than expected count")
 		}
 
